@@ -252,7 +252,3 @@ on the microcontroller.
   matters at the very end of a run.
 
 
-
-Academic project, ENP Algiers, Electronics Department, 2025–2026. Feel free to fork and adapt —
-if you rebuild this, start by editing `config.py` and the geometry constants in `main.c` to match
-your own chassis before trusting any of the tuned speeds or PID gains.
