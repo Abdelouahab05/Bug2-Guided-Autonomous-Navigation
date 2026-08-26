@@ -1,4 +1,4 @@
-# Embedded Autonomous Navigation Robot (STM32 + Raspberry Pi, Bug2)
+# Embedded Autonomous Navigation Robot 
 
 A differential-drive mobile robot that autonomously drives from a start point to a goal, avoids
 obstacles it discovers along the way with a **Bug2** reactive strategy, and confirms it reached the
@@ -8,42 +8,36 @@ project at ENP Algiers.
 This README explains what the system is, how the two boards talk to each other, how to wire
 and flash it, and how to run it — so you can rebuild the same robot from this repo.
 
-> Presented by LAKRIB Toufik & MOUICI Abdelouahab — supervised by Prof. S. Bouhounb, ENP
-> Algiers, Electronics Department.
-
 ---
 
 ## 1. What this robot does
 
 1. Drives in a straight line toward a goal coordinate.
-2. If the LiDAR detects an obstacle blocking the way, it stops, turns, and **follows the
-   obstacle's boundary** until it can safely rejoin its original path (this is the Bug2 algorithm).
+2. If the LiDAR detects an obstacle blocking the way, it stops, turns, and follows the
+   obstacle's boundary until it can safely rejoin its original path (this is the Bug2 algorithm).
 3. Once it estimates it has reached the goal, it stops and scans for an **ArUco marker** with its
    camera to confirm it arrived at the right place.
-
-Measured results (structured indoor arena, dead-reckoning only, no external positioning):
-final position error ≈ 3.6 cm, heading error 4°–8°, path-length error ≈ 7.4 cm, lateral drift
-1–2 cm.
 
 ---
 
 ## 2. Two-board architecture — why, and how it splits
 
-The robot is split across **two processors**, each doing the job it's actually good at:
+The robot is split across two processors, each doing the job it's actually good at:
 
 | Domain | Board | Job | Runs at |
 |---|---|---|---|
-| **Low-level / real-time** | STM32F429I-DISC1 (Cortex-M4F, bare metal, no OS) | Encoder decoding, per-wheel PID speed control, PWM to motors | 20 Hz fixed loop |
-| **High-level / perception** | Raspberry Pi 4 (Linux, Python) | LiDAR obstacle processing, sensor fusion / odometry, Bug2 decision logic, ArUco vision | as fast as it can, tolerant of jitter |
+| **Low-level ** | STM32F429I-DISC1  | Encoder decoding, per-wheel PID speed control, PWM to motors | 20 Hz fixed loop |
+| **High-level ** | Raspberry Pi 4  | LiDAR obstacle processing, sensor fusion / odometry, Bug2 decision logic, ArUco vision | as fast as it can, tolerant of jitter |
 
-**Why not one board for everything?** A microcontroller can't run OpenCV/vision fast enough,
+## 3. Why not one board for everything?
+
+A microcontroller can't run OpenCV/vision fast enough,
 and a Linux SBC can't guarantee a jitter-free 20 Hz control loop because the OS scheduler will
-occasionally delay it — which corrupts PID tracking. Splitting the work removes both problems.
+occasionally delay it which corrupts PID tracking. Splitting the work removes both problems.
 This tradeoff is discussed in depth (with a 3-way comparison against Arduino and ESP32 for the
-low-level role) in the full project report — see `docs/report.pdf` if you've included it in your
-own copy of this repo.
+low-level role) 
 
-The two boards are connected by a single **UART link at 921,600 baud**, exchanging small fixed-size
+The two boards are connected by a single UART link at 921,600 baud, exchanging small fixed-size
 binary frames every control cycle — nothing else. This keeps the interface simple and fast to parse.
 
 ```
@@ -56,7 +50,7 @@ Pi 4  ──USART3 @ 921600 baud──  STM32F429I-DISC1
 
 ---
 
-## 3. Bill of materials
+## 4. Bill of materials
 
 | Part | Notes |
 |---|---|
@@ -67,12 +61,12 @@ Pi 4  ──USART3 @ 921600 baud──  STM32F429I-DISC1
 | Pi Camera v2 (IMX219) | CSI-2, ArUco goal validation only |
 | L298N dual H-bridge | motor driver |
 | 2× geared DC motors + quadrature encoders | ~1900 pulses/rev effective resolution used in firmware |
-| Differential-drive chassis | robot length 0.35 m, width 0.28 m, wheelbase 0.345 m, wheel diameter 0.075 m in this build — **edit `config.py` / `main.c` constants if yours differ** |
+| Differential-drive chassis | robot length 0.35 m, width 0.28 m, wheelbase 0.345 m, wheel diameter 0.075 m in this build, edit `config.py` / `main.c` constants if yours differ |
 | Battery + regulation, E-stop switch | shared power for both domains |
 
 ---
 
-## 4. Repo layout & where to look for what
+## 5. Repo layout
 
 ```
 main.c            STM32 firmware (bare-metal C, STM32CubeIDE / HAL project)
@@ -88,16 +82,15 @@ aruco_scanner.py    OpenCV ArUco detection at the goal
 math_utils.py       Point2D, angle helpers, M-line / goal-tolerance geometry
 ```
 
-If you want to see **exactly how a piece works**, go to the source file, don't re-derive it from
-this README — the code is the ground truth and is commented with `[MOVE]`, `[TURN]`, `[ARUCO]`
+If you want to see exactly how a piece works, go to the source file, don't re-derive it from
+this README the code is the ground truth and is commented with `[MOVE]`, `[TURN]`, `[ARUCO]`
 etc. print tags you can watch live over SSH/serial when bringing your own robot up.
 
 ---
 
-## 5. STM32 side — firmware (`main.c`)
+## 6. STM32 side 
 
-This is a **STM32CubeIDE-generated HAL project** with logic added in the `USER CODE` blocks —
-open it in CubeIDE / CubeMX to see and regenerate the peripheral configuration (clocks, GPIO,
+This is a STM32CubeIDE-generated HAL project, open it in CubeIDE / CubeMX to see and regenerate the peripheral configuration (clocks, GPIO,
 timer prescalers) rather than hand-editing the `MX_*_Init()` functions.
 
 What to check in `main.c` if you're rebuilding this:
@@ -118,15 +111,14 @@ What to check in `main.c` if you're rebuilding this:
 - **`while (1)` main loop** — the 50 ms (20 Hz) periodic control task: read encoders → compute
   RPM → run PID → set PWM → send uplink telemetry.
 
-If you're new to STM32CubeIDE/HAL, don't try to read this file top-to-bottom — open it in the
-IDE, look at the **Pinout & Configuration** view for the timer/UART setup, and read the `USER
+If you're new to STM32CubeIDE/HAL, open this file in the IDE, look at the **Pinout & Configuration** view for the timer/UART setup, and read the `USER
 CODE` sections for the actual control logic.
 
 ---
 
-## 6. Raspberry Pi side — software
+## 7. Raspberry Pi side 
 
-### 6.1 Install
+### 7.1 Install
 
 ```bash
 sudo apt install python3-opencv python3-serial python3-smbus2 python3-pip
@@ -136,7 +128,7 @@ pip install pyrplidar
 You'll also need the `mpu6050` Python driver for `imu.py` — install whatever MPU6050 library your
 system provides and matching import path.
 
-### 6.2 Configure
+### 7.2 Configure
 
 Everything tunable lives in **`config.py`** — serial ports, robot geometry, safety distances,
 Bug2 goal position, speeds, ArUco settings. Start here before touching any other file:
@@ -147,7 +139,7 @@ LIDAR_PORT  = '/dev/ttyUSB1'   # RPLIDAR
 GOAL_POSITION = (1.0, 0.0)     # meters, in the robot's start frame
 ```
 
-### 6.3 Run
+### 7.3 Run
 
 ```bash
 python3 main.py
@@ -161,7 +153,7 @@ completion or Ctrl+C.
 
 ---
 
-## 7. The communication protocol
+## 8. The communication protocol
 
 Fixed-length binary frames, little-endian floats, no text parsing. Full detail (including why the
 uplink has a sync byte and the downlink doesn't) is implemented in **`comms.py`** on the Pi side
@@ -188,7 +180,7 @@ reads bare-metal at a fixed cadence, so the fixed frame length is enough to deli
 
 ---
 
-## 8. How the navigation logic works (`bug2.py`)
+## 9. How the navigation logic works 
 
 Three states:
 
@@ -208,7 +200,7 @@ chassis is longer than it is wide.
 
 ---
 
-## 9. LiDAR angle convention (read this before wiring your scanner)
+## 10. LiDAR angle convention
 
 `lidar.py` assumes:
 
@@ -227,7 +219,7 @@ obstacle-avoidance behavior.
 
 ---
 
-## 10. Odometry — how position is estimated
+## 11. Odometry: how position is estimated
 
 Odometry is **not** computed on the Pi from encoder counts directly. The STM32 sends fused
 `(delta_s, theta_fused)` values (distance since last packet, and absolute fused heading), and
@@ -239,29 +231,27 @@ on the microcontroller.
 
 ---
 
-## 11. Safety notes
+## 12. Safety notes
 
 - The firmware and `main.py::shutdown()` both zero the motor targets and call
-  `comms.emergency_stop()` (which spams a zero-velocity packet 5×) on Ctrl+C — don't remove this
+  `comms.emergency_stop()` (which spams a zero-velocity packet 5×) on Ctrl+C don't remove this
   if you're modifying the shutdown path.
 - Fit a physical emergency-stop switch on the power rail. Software stops are not a substitute.
-- Calibrate the gyro (`imu.py::calibrate()`) with the robot completely still — it's blocking and
+- Calibrate the gyro (`imu.py::calibrate()`) with the robot completely still, it's blocking and
   runs at the start of every `main.py` execution.
 
 ---
 
-## 12. Known limitations (see also the full report)
+## 13. Known limitations 
 
-- Pure dead-reckoning: position error is small over a single mission but **grows unbounded** over
-  long runs — there's no absolute position reference (no SLAM, no GPS).
-- No global map — Bug2 guarantees reaching a reachable goal, not an efficient path around complex
+- Pure dead-reckoning: position error is small over a single mission but grows unbounded over
+  long runs, there's no absolute position reference (no SLAM).
+- No global map: Bug2 guarantees reaching a reachable goal, not an efficient path around complex
   obstacle layouts.
 - Vision is used only for the final goal-marker check, not for navigation, so lighting only
   matters at the very end of a run.
 
----
 
-## License / attribution
 
 Academic project, ENP Algiers, Electronics Department, 2025–2026. Feel free to fork and adapt —
 if you rebuild this, start by editing `config.py` and the geometry constants in `main.c` to match
