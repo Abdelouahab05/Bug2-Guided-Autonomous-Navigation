@@ -26,8 +26,8 @@ The robot is split across two processors, each doing the job it's actually good 
 
 | Domain | Board | Job | Runs at |
 |---|---|---|---|
-| **Low-level ** | STM32F429I-DISC1  | Encoder decoding, per-wheel PID speed control, PWM to motors | 20 Hz fixed loop |
-| **High-level ** | Raspberry Pi 4  | LiDAR obstacle processing, sensor fusion / odometry, Bug2 decision logic, ArUco vision | as fast as it can, tolerant of jitter |
+| Low-level | STM32F429I-DISC1  | Encoder decoding, per-wheel PID speed control, PWM to motors | 20 Hz fixed loop |
+| High-level | Raspberry Pi 4  | LiDAR obstacle processing, sensor fusion / odometry, Bug2 decision logic, ArUco vision | as fast as it can, tolerant of jitter |
 
 ## 3. Why not one board for everything?
 
